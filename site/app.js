@@ -80,14 +80,15 @@
     for (let x = 80; x <= 900; x += 82) {
       const l = document.createElementNS(NS, "line");
       l.setAttribute("x1", x); l.setAttribute("y1", 40); l.setAttribute("x2", x); l.setAttribute("y2", 560);
-      l.setAttribute("stroke", "rgba(255,255,255,0.03)"); svg.appendChild(l);
+      l.setAttribute("class", "graticule"); svg.appendChild(l);
     }
     for (let y = 60; y <= 560; y += 72) {
       const l = document.createElementNS(NS, "line");
       l.setAttribute("x1", 60); l.setAttribute("y1", y); l.setAttribute("x2", 900); l.setAttribute("y2", y);
-      l.setAttribute("stroke", "rgba(255,255,255,0.03)"); svg.appendChild(l);
+      l.setAttribute("class", "graticule"); svg.appendChild(l);
     }
-    // lanes (curved) from home to each hub
+    // lanes (curved) from home to each hub — kept in a map so we can highlight one
+    const laneEls = {};
     HUBS.forEach((h) => {
       const mx = (HOME.x + h.x) / 2;
       const my = (HOME.y + h.y) / 2 - Math.abs(HOME.x - h.x) * 0.16 - 20;
@@ -95,6 +96,7 @@
       path.setAttribute("d", `M${HOME.x},${HOME.y} Q${mx},${my} ${h.x},${h.y}`);
       path.setAttribute("class", "lane");
       svg.appendChild(path);
+      laneEls[h.id] = path;
     });
     // hub factory
     const readout = { city: $("#mapReadout .readout-city"), role: $("#mapReadout .readout-role"), loads: $("#rmLoads"), miles: $("#rmMiles"), ontime: $("#rmOnTime") };
@@ -107,7 +109,7 @@
     };
     const makeHub = (d, isHome) => {
       const g = document.createElementNS(NS, "g");
-      g.setAttribute("class", "hub" + (isHome ? " active" : ""));
+      g.setAttribute("class", "hub" + (isHome ? " hub-home active" : ""));
       g.setAttribute("tabindex", "0");
       g.setAttribute("role", "button");
       g.setAttribute("aria-label", d.name + " freight lane details");
@@ -131,6 +133,8 @@
       const activate = () => {
         $$(".hub", svg).forEach((n) => n.classList.remove("active"));
         g.classList.add("active");
+        Object.values(laneEls).forEach((p) => p.setAttribute("class", "lane"));
+        if (!isHome && laneEls[d.id]) laneEls[d.id].setAttribute("class", "lane lane-active");
         setReadout(d);
       };
       g.addEventListener("mouseenter", activate);
