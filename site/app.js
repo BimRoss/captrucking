@@ -181,13 +181,13 @@
   // observer's `.in` class (added to each .chart-card). Their resting state is
   // the final/visible state, so a missed observer can never leave one blank.
 
-  /* ---------- Instant quote calculator ---------- */
-  const miles = $("#q_miles"), weight = $("#q_weight"), equip = $("#q_equip"), rush = $("#q_rush");
-  const milesOut = $("#milesOut"), weightOut = $("#weightOut");
+  /* ---------- Instant quote calculator (Louisville origin fixed) ---------- */
+  const city = $("#q_city"), weight = $("#q_weight"), equip = $("#q_equip"), rush = $("#q_rush");
+  const distOut = $("#distOut"), weightOut = $("#weightOut");
   const estLow = $("#estLow"), estHigh = $("#estHigh"), estPerMile = $("#estPerMile"), estTransit = $("#estTransit");
 
   const calcQuote = () => {
-    const mi = +miles.value, wt = +weight.value, eqMult = +equip.value;
+    const mi = +city.value, wt = +weight.value, eqMult = +equip.value;
     let perMile = Math.max(1.85, 3.4 - mi / 900);
     perMile *= eqMult;
     if (wt > 30000) perMile *= 1.08;
@@ -196,15 +196,15 @@
     const low = Math.round((base * 0.93) / 5) * 5;
     const high = Math.round((base * 1.09) / 5) * 5;
     const transit = Math.max(1, Math.ceil(mi / 550));
-    milesOut.textContent = fmt(mi) + " mi";
+    distOut.textContent = fmt(mi) + " mi from Louisville";
     weightOut.textContent = fmt(wt) + " lbs";
     estLow.textContent = "$" + fmt(low);
     estHigh.textContent = "$" + fmt(high);
     estPerMile.textContent = "$" + perMile.toFixed(2);
     estTransit.textContent = transit + (transit === 1 ? " day" : " days");
   };
-  [miles, weight, equip, rush].forEach((el) => el && el.addEventListener("input", calcQuote));
-  if (miles) calcQuote();
+  [city, weight, equip, rush].forEach((el) => el && ["input", "change"].forEach((ev) => el.addEventListener(ev, calcQuote)));
+  if (city) calcQuote();
 
   /* ---------- Form handlers (client-side demo) ---------- */
   const handleForm = (formId, successId) => {
