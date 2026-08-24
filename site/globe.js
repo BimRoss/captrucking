@@ -132,6 +132,11 @@ function initKentucky(canvas) {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    // Tuck Kentucky into the top-right so it doesn't sit behind the headline.
+    // Portrait (mobile) keeps it high and near-center; landscape pushes right.
+    const portrait = camera.aspect < 1;
+    group.position.set(portrait ? 0.35 : 1.7, portrait ? 1.7 : 1.0, 0);
+    group.scale.setScalar(portrait ? 0.72 : 0.92);
   }
   window.addEventListener("resize", resize);
   resize();

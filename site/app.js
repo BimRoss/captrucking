@@ -70,17 +70,42 @@
     kysvg.setAttribute("viewBox", geo.viewBox);
     geo.paths.forEach((d) => { const p = elNS("path"); p.setAttribute("d", d); p.setAttribute("class", "ky-state"); kysvg.appendChild(p); });
     const home = geo.towns.louisville;
+    // Waypoints between Louisville and each stop so the lanes bend like real
+    // highways (I-64 east, Bluegrass & BG parkways south) instead of drawing
+    // as abstract arcs. Home is prepended and the stop appended automatically.
+    // Eastern lanes share an I-64-style trunk out of Louisville (~[514,152])
+    // then branch; southern lanes share a Bluegrass-Parkway-style trunk
+    // (~[483,184]). The shared segments read as a real road network.
+    const ROUTE_WAYPTS = {
+      frankfort:    [[500, 150], [514, 152], [550, 157]],
+      lexington:    [[500, 150], [514, 152], [566, 165], [604, 180]],
+      versailles:   [[500, 150], [514, 152], [560, 173]],
+      lawrenceburg: [[500, 150], [514, 152], [548, 181]],
+      clermont:     [[479, 176], [483, 190]],
+      bardstown:    [[479, 176], [483, 184], [498, 208]],
+      loretto:      [[479, 176], [483, 184], [502, 229]],
+      danville:     [[479, 176], [483, 184], [522, 206], [560, 231]],
+    };
+    // Smooth a polyline through its points (midpoint-quadratic) so bends read
+    // as roads, not kinks.
+    const roadPath = (pts) => {
+      if (pts.length < 3) return `M${pts[0][0]},${pts[0][1]} L${pts[1][0]},${pts[1][1]}`;
+      let d = `M${pts[0][0]},${pts[0][1]}`;
+      for (let i = 1; i < pts.length - 1; i++) {
+        const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+        d += ` Q${pts[i][0]},${pts[i][1]} ${mx},${my}`;
+      }
+      const n = pts.length - 1;
+      d += ` L${pts[n][0]},${pts[n][1]}`;
+      return d;
+    };
     const routeEls = {};
     Object.keys(TOWNS).forEach((id) => {
       if (id === "louisville" || !geo.towns[id]) return;
       const t = geo.towns[id];
-      const mx = (home[0] + t[0]) / 2, my = (home[1] + t[1]) / 2;
-      const dx = t[0] - home[0], dy = t[1] - home[1];
-      const len = Math.hypot(dx, dy) || 1;
-      const off = Math.min(26, len * 0.16);
-      const cx = mx - (dy / len) * off, cy = my + (dx / len) * off;
+      const pts = [home, ...(ROUTE_WAYPTS[id] || []), t];
       const path = elNS("path");
-      path.setAttribute("d", `M${home[0]},${home[1]} Q${cx},${cy} ${t[0]},${t[1]}`);
+      path.setAttribute("d", roadPath(pts));
       path.setAttribute("class", "route");
       kysvg.appendChild(path);
       routeEls[id] = path;
@@ -219,13 +244,33 @@
   (function () {
     const ul = $("#laneBars");
     if (!ul) return;
-    const lanes = [ { l: "Louisville → Chicago", v: 100 }, { l: "Louisville → Atlanta", v: 82 }, { l: "Louisville → Dallas", v: 74 }, { l: "Louisville → Nashville", v: 61 }, { l: "Louisville → New York", v: 48 } ];
+    const lanes = [ { l: "Louisville → Lexington", v: 100 }, { l: "Louisville → Bardstown", v: 86 }, { l: "Louisville → Frankfort", v: 72 }, { l: "Louisville → Elizabethtown", v: 57 }, { l: "Louisville → Owensboro", v: 43 } ];
     ul.innerHTML = lanes.map((x, i) => `<li><div class="lane-row"><span>${x.l}</span></div><div class="lane-track"><span class="lane-fill" style="--w:${x.v}%;animation-delay:${i * 55}ms"></span></div></li>`).join("");
   })();
 
   // Charts animate in via pure CSS keyframes, gated on the site-wide reveal
   // observer's `.in` class (added to each .chart-card). Their resting state is
   // the final/visible state, so a missed observer can never leave one blank.
+
+  /* ---------- Dispatch ticker (live-load flavor, in-state lanes) ---------- */
+  (function () {
+    const track = $("#dispatchTicker");
+    if (!track) return;
+    const loads = [
+      { pair: "Bardstown → Louisville", note: "18 pallets", status: "delivered" },
+      { pair: "Louisville → Lexington", note: "barrels", status: "en route" },
+      { pair: "Frankfort → Louisville", note: "case & pallet", status: "loading" },
+      { pair: "Louisville → Loretto", note: "reefer", status: "scheduled" },
+      { pair: "Versailles → Louisville", note: "white-glove", status: "en route" },
+      { pair: "Louisville → Bardstown", note: "12 pallets", status: "delivered" },
+      { pair: "Clermont → Louisville", note: "bulk", status: "loading" },
+      { pair: "Louisville → Danville", note: "allocated release", status: "en route" },
+      { pair: "Elizabethtown → Louisville", note: "case & pallet", status: "delivered" },
+    ];
+    const item = (l, i) => `<span class="ticker-item"><span class="td"></span>LOAD ${4800 + i * 7} · <b>${l.pair}</b> · ${l.note} · ${l.status}</span>`;
+    // Duplicate the run so the -50% translate loop is seamless.
+    track.innerHTML = loads.map(item).join("") + loads.map(item).join("");
+  })();
 
   /* ---------- Instant quote calculator (Louisville origin fixed) ---------- */
   const city = $("#q_city"), weight = $("#q_weight"), equip = $("#q_equip"), rush = $("#q_rush");

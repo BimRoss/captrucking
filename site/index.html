@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./styles.css?v=7" />
+  <link rel="stylesheet" href="./styles.css?v=8" />
 </head>
 <body>
   <!-- NAV -->
@@ -67,6 +67,11 @@
       <div class="stat-label">Cargo claims</div>
     </div>
   </section>
+
+  <!-- DISPATCH TICKER -->
+  <div class="ticker" aria-label="Recent dispatch activity">
+    <div class="ticker-track" id="dispatchTicker"></div>
+  </div>
 
   <!-- DIFFERENCE -->
   <section class="section difference" id="difference">
@@ -225,25 +230,22 @@
           <label class="field">
             <span>Receiving city</span>
             <select id="q_city">
-              <option value="100">Cincinnati, OH</option>
-              <option value="115">Indianapolis, IN</option>
-              <option value="175" selected>Nashville, TN</option>
-              <option value="210">Columbus, OH</option>
-              <option value="260">St. Louis, MO</option>
-              <option value="295">Chicago, IL</option>
-              <option value="360">Detroit, MI</option>
-              <option value="380">Memphis, TN</option>
-              <option value="415">Atlanta, GA</option>
-              <option value="470">Charlotte, NC</option>
-              <option value="520">Kansas City, MO</option>
-              <option value="745">New York, NY</option>
-              <option value="820">Dallas, TX</option>
-              <option value="970">Houston, TX</option>
-              <option value="1090">Miami, FL</option>
-              <option value="1120">Denver, CO</option>
-              <option value="2110">Los Angeles, CA</option>
+              <option value="40">Bardstown, KY</option>
+              <option value="45">Elizabethtown, KY</option>
+              <option value="55">Frankfort, KY</option>
+              <option value="65">Lawrenceburg, KY</option>
+              <option value="80" selected>Lexington, KY</option>
+              <option value="85">Danville, KY</option>
+              <option value="95">Covington, KY</option>
+              <option value="110">Owensboro, KY</option>
+              <option value="110">Richmond, KY</option>
+              <option value="115">Bowling Green, KY</option>
+              <option value="120">Somerset, KY</option>
+              <option value="145">London, KY</option>
+              <option value="175">Hopkinsville, KY</option>
+              <option value="215">Paducah, KY</option>
             </select>
-            <output id="distOut">175 mi from Louisville</output>
+            <output id="distOut">80 mi from Louisville</output>
           </label>
           <div class="field-row">
             <label class="field">
@@ -364,8 +366,8 @@
     <a href="#quote" class="btn btn-ink">Request a rate</a>
   </div>
 
-  <script type="module" src="./globe.js?v=7"></script>
-  <script src="./ky-geo.js?v=7"></script>
-  <script src="./app.js?v=7" defer></script>
+  <script type="module" src="./globe.js?v=8"></script>
+  <script src="./ky-geo.js?v=8"></script>
+  <script src="./app.js?v=8" defer></script>
 </body>
 </html>
