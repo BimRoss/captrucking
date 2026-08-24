@@ -24,8 +24,8 @@
     <nav class="nav-links" aria-label="Primary">
       <a href="#difference">The Difference</a>
       <a href="#services">Services</a>
-      <a href="#network">Network</a>
-      <a href="#quote">Get a Rate</a>
+      <a href="#network">The Trail</a>
+      <a href="#numbers">By the Numbers</a>
       <a href="#contact">Contact</a>
     </nav>
     <a href="#quote" class="btn btn-ink nav-cta">Request a rate</a>
@@ -36,7 +36,7 @@
     <canvas id="globe" aria-hidden="true"></canvas>
     <div class="hero-veil" aria-hidden="true"></div>
     <div class="hero-inner">
-      <div class="eyebrow reveal"><span class="pulse"></span> Licensed &amp; bonded spirits carrier · Louisville, Kentucky</div>
+      <div class="hero-kicker reveal">Louisville · Bardstown · The Kentucky Bourbon Trail</div>
       <h1 class="reveal">We move Kentucky's bourbon<br /><span class="serif-italic">like it's our name on the barrel.</span></h1>
       <p class="hero-lede reveal">A licensed, bonded carrier built for the spirits industry. From rickhouse to bottler to distributor, your bourbon travels with people who answer the phone and treat every load like the good stuff.</p>
       <div class="hero-cta reveal">
@@ -138,31 +138,67 @@
     </div>
   </section>
 
-  <!-- NETWORK / DATA VIZ -->
+  <!-- NETWORK — Kentucky Bourbon Trail map -->
   <section class="section network" id="network">
     <div class="section-head reveal">
-      <div class="kicker">The lanes</div>
-      <h2>Bourbon country to every market.</h2>
-      <p class="section-sub">Our lanes run out of Louisville to the distributors and markets that matter. Select a market for trailing 30-day volume.</p>
+      <div class="kicker">The Kentucky Bourbon Trail, on wheels</div>
+      <h2>Every rickhouse in the Commonwealth. One carrier.</h2>
+      <p class="section-sub">We run the roads between Kentucky's distilleries every day. Tap a stop for its trailing 30-day activity.</p>
     </div>
     <div class="map-wrap reveal">
       <div class="map-panel">
-        <svg id="usmap" viewBox="0 0 960 600" role="img" aria-label="CAP Trucking bourbon freight lanes across the United States"></svg>
+        <svg id="kymap" role="img" aria-label="Map of Kentucky showing CAP Trucking bourbon-trail routes between distilleries"></svg>
         <div class="map-legend">
           <span class="dot dot-hub"></span> Louisville hub
-          <span class="dot dot-lane"></span> Active lane
+          <span class="dot dot-stop"></span> Distillery stop
+          <span class="dot dot-lane"></span> Active route
         </div>
       </div>
       <aside class="map-readout" id="mapReadout" aria-live="polite">
+        <div class="readout-eyebrow">Bourbon Trail stop</div>
         <div class="readout-city">Louisville, KY</div>
-        <div class="readout-role">Home terminal · bourbon country</div>
+        <div class="readout-role">Home terminal</div>
         <div class="readout-metrics">
           <div><span class="rm-num" id="rmLoads">1,240</span><span class="rm-label">loads / 30d</span></div>
-          <div><span class="rm-num" id="rmMiles">612</span><span class="rm-label">avg miles / lane</span></div>
+          <div><span class="rm-num" id="rmMiles">612</span><span class="rm-label">avg miles / route</span></div>
           <div><span class="rm-num" id="rmOnTime">99.4%</span><span class="rm-label">on-time</span></div>
         </div>
-        <p class="readout-hint">Select any market on the map.</p>
+        <p class="readout-hint">Tap a distillery on the map.</p>
       </aside>
+    </div>
+  </section>
+
+  <!-- NUMBERS — animated charts -->
+  <section class="section numbers" id="numbers">
+    <div class="section-head reveal">
+      <div class="kicker">By the numbers</div>
+      <h2>A year of Kentucky bourbon, hauled.</h2>
+      <p class="section-sub">Trailing twelve months across our distillery lanes. Figures are illustrative.</p>
+    </div>
+    <div class="charts">
+      <div class="chart-card chart-bars reveal">
+        <div class="chart-head">
+          <div class="chart-title">Barrels moved / month</div>
+          <div class="chart-value" id="barsTotal">214,000+</div>
+        </div>
+        <svg id="barChart" class="chart-svg" role="img" aria-label="Bar chart of barrels moved per month"></svg>
+        <div class="chart-x" id="barChartX"></div>
+      </div>
+      <div class="chart-card chart-donut reveal">
+        <div class="chart-head">
+          <div class="chart-title">Freight mix</div>
+        </div>
+        <div class="donut-wrap">
+          <svg id="donutChart" viewBox="0 0 180 180" role="img" aria-label="Donut chart of freight mix"></svg>
+          <ul class="donut-legend" id="donutLegend"></ul>
+        </div>
+      </div>
+      <div class="chart-card chart-lanes reveal">
+        <div class="chart-head">
+          <div class="chart-title">Busiest lanes out of Louisville</div>
+        </div>
+        <ul class="lanebars" id="laneBars"></ul>
+      </div>
     </div>
   </section>
 
@@ -310,6 +346,7 @@
   </footer>
 
   <script type="module" src="./globe.js"></script>
+  <script src="./ky-geo.js"></script>
   <script src="./app.js" defer></script>
 </body>
 </html>

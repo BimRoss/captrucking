@@ -3,6 +3,8 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const fmt = (n) => n.toLocaleString("en-US");
+  const NS = "http://www.w3.org/2000/svg";
+  const elNS = (t) => document.createElementNS(NS, t);
 
   document.getElementById("year").textContent = "2026";
 
@@ -16,10 +18,7 @@
   const io = new IntersectionObserver(
     (entries) => {
       entries.forEach((e) => {
-        if (e.isIntersecting) {
-          e.target.classList.add("in");
-          io.unobserve(e.target);
-        }
+        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
       });
     },
     { threshold: 0.12 }
@@ -41,100 +40,76 @@
       if (decimals > 0) out = val.toFixed(decimals);
       else if (target >= 1000) out = fmt(Math.floor(val));
       else out = Math.floor(val).toString();
-      el.textContent = out + (p === 1 ? suffix : suffix && p > 0.98 ? suffix : "");
+      el.textContent = out + suffix;
       if (p < 1) requestAnimationFrame(step);
       else el.textContent = (decimals > 0 ? target.toFixed(decimals) : fmt(target)) + suffix;
     };
     requestAnimationFrame(step);
   };
   const statIO = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) {
-          animateCount(e.target);
-          statIO.unobserve(e.target);
-        }
-      });
-    },
+    (entries) => { entries.forEach((e) => { if (e.isIntersecting) { animateCount(e.target); statIO.unobserve(e.target); } }); },
     { threshold: 0.6 }
   );
   $$(".stat-num").forEach((el) => statIO.observe(el));
 
-  /* ---------- Interactive lane network map ---------- */
-  const HOME = { id: "lou", name: "Louisville, KY", role: "Home terminal", x: 638, y: 272, loads: 1240, miles: 612, ontime: 99.4 };
-  const HUBS = [
-    { id: "sea", name: "Seattle, WA", role: "Pacific NW lane", x: 130, y: 96, loads: 214, miles: 2150, ontime: 98.7 },
-    { id: "lax", name: "Los Angeles, CA", role: "West Coast corridor", x: 128, y: 322, loads: 486, miles: 1980, ontime: 98.9 },
-    { id: "den", name: "Denver, CO", role: "Mountain lane", x: 352, y: 250, loads: 308, miles: 1120, ontime: 99.1 },
-    { id: "dal", name: "Dallas, TX", role: "South Central hub", x: 452, y: 392, loads: 742, miles: 820, ontime: 99.3 },
-    { id: "hou", name: "Houston, TX", role: "Gulf Coast lane", x: 486, y: 452, loads: 531, miles: 940, ontime: 99.0 },
-    { id: "chi", name: "Chicago, IL", role: "Midwest hub", x: 596, y: 196, loads: 968, miles: 300, ontime: 99.5 },
-    { id: "atl", name: "Atlanta, GA", role: "Southeast hub", x: 690, y: 372, loads: 815, miles: 420, ontime: 99.4 },
-    { id: "mia", name: "Miami, FL", role: "Southeast corridor", x: 792, y: 512, loads: 397, miles: 920, ontime: 98.8 },
-    { id: "nyc", name: "New York, NY", role: "Northeast corridor", x: 832, y: 182, loads: 623, miles: 760, ontime: 99.2 },
-  ];
-  const NS = "http://www.w3.org/2000/svg";
-  const svg = $("#usmap");
-  if (svg) {
-    // graticule backdrop
-    for (let x = 80; x <= 900; x += 82) {
-      const l = document.createElementNS(NS, "line");
-      l.setAttribute("x1", x); l.setAttribute("y1", 40); l.setAttribute("x2", x); l.setAttribute("y2", 560);
-      l.setAttribute("class", "graticule"); svg.appendChild(l);
-    }
-    for (let y = 60; y <= 560; y += 72) {
-      const l = document.createElementNS(NS, "line");
-      l.setAttribute("x1", 60); l.setAttribute("y1", y); l.setAttribute("x2", 900); l.setAttribute("y2", y);
-      l.setAttribute("class", "graticule"); svg.appendChild(l);
-    }
-    // lanes (curved) from home to each hub — kept in a map so we can highlight one
-    const laneEls = {};
-    HUBS.forEach((h) => {
-      const mx = (HOME.x + h.x) / 2;
-      const my = (HOME.y + h.y) / 2 - Math.abs(HOME.x - h.x) * 0.16 - 20;
-      const path = document.createElementNS(NS, "path");
-      path.setAttribute("d", `M${HOME.x},${HOME.y} Q${mx},${my} ${h.x},${h.y}`);
-      path.setAttribute("class", "lane");
-      svg.appendChild(path);
-      laneEls[h.id] = path;
+  /* ---------- Kentucky Bourbon Trail map ---------- */
+  const TOWNS = {
+    louisville:   { name: "Louisville",   distillery: "Home terminal · Old Forester",  loads: 1240, miles: 78,  ontime: 99.4, home: true },
+    clermont:     { name: "Clermont",     distillery: "Jim Beam",                       loads: 1020, miles: 30,  ontime: 99.5 },
+    bardstown:    { name: "Bardstown",    distillery: "Heaven Hill · Barton 1792",      loads: 980,  miles: 41,  ontime: 99.5 },
+    frankfort:    { name: "Frankfort",    distillery: "Buffalo Trace",                  loads: 1110, miles: 55,  ontime: 99.3 },
+    lawrenceburg: { name: "Lawrenceburg", distillery: "Wild Turkey · Four Roses",       loads: 815,  miles: 66,  ontime: 99.4 },
+    loretto:      { name: "Loretto",      distillery: "Maker's Mark",                   loads: 720,  miles: 62,  ontime: 99.6 },
+    versailles:   { name: "Versailles",   distillery: "Woodford Reserve",               loads: 588,  miles: 70,  ontime: 99.2 },
+    lexington:    { name: "Lexington",    distillery: "Town Branch · Barrel House",     loads: 640,  miles: 85,  ontime: 99.1 },
+    danville:     { name: "Danville",     distillery: "Wilderness Trail",               loads: 402,  miles: 92,  ontime: 98.9 },
+    owensboro:    { name: "Owensboro",    distillery: "Green River",                    loads: 356,  miles: 108, ontime: 98.8 },
+  };
+  const kysvg = $("#kymap");
+  const geo = window.KY_GEO;
+  if (kysvg && geo) {
+    kysvg.setAttribute("viewBox", geo.viewBox);
+    geo.paths.forEach((d) => { const p = elNS("path"); p.setAttribute("d", d); p.setAttribute("class", "ky-state"); kysvg.appendChild(p); });
+    const home = geo.towns.louisville;
+    const routeEls = {};
+    Object.keys(TOWNS).forEach((id) => {
+      if (id === "louisville" || !geo.towns[id]) return;
+      const t = geo.towns[id];
+      const mx = (home[0] + t[0]) / 2, my = (home[1] + t[1]) / 2;
+      const dx = t[0] - home[0], dy = t[1] - home[1];
+      const len = Math.hypot(dx, dy) || 1;
+      const off = Math.min(26, len * 0.16);
+      const cx = mx - (dy / len) * off, cy = my + (dx / len) * off;
+      const path = elNS("path");
+      path.setAttribute("d", `M${home[0]},${home[1]} Q${cx},${cy} ${t[0]},${t[1]}`);
+      path.setAttribute("class", "route");
+      kysvg.appendChild(path);
+      routeEls[id] = path;
     });
-    // hub factory
-    const readout = { city: $("#mapReadout .readout-city"), role: $("#mapReadout .readout-role"), loads: $("#rmLoads"), miles: $("#rmMiles"), ontime: $("#rmOnTime") };
+    const readout = { eyebrow: $("#mapReadout .readout-eyebrow"), city: $("#mapReadout .readout-city"), role: $("#mapReadout .readout-role"), loads: $("#rmLoads"), miles: $("#rmMiles"), ontime: $("#rmOnTime") };
     const setReadout = (d) => {
-      readout.city.textContent = d.name;
-      readout.role.textContent = d.role;
+      readout.eyebrow.textContent = d.home ? "Home terminal" : "Bourbon Trail stop";
+      readout.city.textContent = d.name + ", KY";
+      readout.role.textContent = d.distillery;
       readout.loads.textContent = fmt(d.loads);
       readout.miles.textContent = fmt(d.miles);
       readout.ontime.textContent = d.ontime.toFixed(1) + "%";
     };
-    const makeHub = (d, isHome) => {
-      const g = document.createElementNS(NS, "g");
-      g.setAttribute("class", "hub" + (isHome ? " hub-home active" : ""));
-      g.setAttribute("tabindex", "0");
-      g.setAttribute("role", "button");
-      g.setAttribute("aria-label", d.name + " freight lane details");
-      if (isHome) {
-        const ring = document.createElementNS(NS, "circle");
-        ring.setAttribute("cx", d.x); ring.setAttribute("cy", d.y); ring.setAttribute("r", 14);
-        ring.setAttribute("class", "hub-ring");
-        g.appendChild(ring);
-      }
-      const dot = document.createElementNS(NS, "circle");
-      dot.setAttribute("cx", d.x); dot.setAttribute("cy", d.y);
-      dot.setAttribute("r", isHome ? 7 : 5);
-      dot.setAttribute("class", "hub-dot");
-      g.appendChild(dot);
-      const label = document.createElementNS(NS, "text");
-      label.setAttribute("x", d.x); label.setAttribute("y", d.y - 14);
-      label.setAttribute("text-anchor", "middle");
-      label.setAttribute("class", "hub-label");
-      label.textContent = d.name.split(",")[0];
-      g.appendChild(label);
+    const makeStop = (id) => {
+      const d = TOWNS[id], pos = geo.towns[id];
+      if (!pos) return null;
+      const g = elNS("g");
+      g.setAttribute("class", "hub" + (d.home ? " hub-home active" : ""));
+      g.setAttribute("tabindex", "0"); g.setAttribute("role", "button");
+      g.setAttribute("aria-label", d.name + ", " + d.distillery);
+      if (d.home) { const ring = elNS("circle"); ring.setAttribute("cx", pos[0]); ring.setAttribute("cy", pos[1]); ring.setAttribute("r", 12); ring.setAttribute("class", "hub-ring"); g.appendChild(ring); }
+      const dot = elNS("circle"); dot.setAttribute("cx", pos[0]); dot.setAttribute("cy", pos[1]); dot.setAttribute("r", d.home ? 6 : 4.5); dot.setAttribute("class", "hub-dot"); g.appendChild(dot);
+      const label = elNS("text"); label.setAttribute("x", pos[0]); label.setAttribute("y", pos[1] - 11); label.setAttribute("text-anchor", "middle"); label.setAttribute("class", "hub-label"); label.textContent = d.name; g.appendChild(label);
       const activate = () => {
-        $$(".hub", svg).forEach((n) => n.classList.remove("active"));
+        $$(".hub", kysvg).forEach((n) => n.classList.remove("active"));
         g.classList.add("active");
-        Object.values(laneEls).forEach((p) => p.setAttribute("class", "lane"));
-        if (!isHome && laneEls[d.id]) laneEls[d.id].setAttribute("class", "lane lane-active");
+        Object.values(routeEls).forEach((p) => p.setAttribute("class", "route"));
+        if (!d.home && routeEls[id]) routeEls[id].setAttribute("class", "route route-active");
         setReadout(d);
       };
       g.addEventListener("mouseenter", activate);
@@ -143,9 +118,77 @@
       g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(); } });
       return g;
     };
-    HUBS.forEach((h) => svg.appendChild(makeHub(h, false)));
-    svg.appendChild(makeHub(HOME, true));
+    Object.keys(TOWNS).forEach((id) => { if (id !== "louisville") { const g = makeStop(id); if (g) kysvg.appendChild(g); } });
+    const homeG = makeStop("louisville"); if (homeG) kysvg.appendChild(homeG);
   }
+
+  /* ---------- Animated charts ---------- */
+  const whenIn = (node, fn) => {
+    if (!node) return;
+    const o = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { fn(); o.unobserve(node); } }), { threshold: 0.28 });
+    o.observe(node);
+  };
+
+  // Bar chart — barrels moved / month
+  (function () {
+    const svg = $("#barChart"), xrow = $("#barChartX");
+    if (!svg) return;
+    const months = ["S", "O", "N", "D", "J", "F", "M", "A", "M", "J", "J", "A"];
+    const data = [12, 14, 13, 16, 15, 18, 17, 19, 21, 20, 23, 26];
+    const W = 340, H = 150, pad = 6, n = data.length;
+    const gap = (W - pad * 2) / n, bw = gap * 0.6, max = Math.max(...data);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    data.forEach((v, i) => {
+      const h = (v / max) * (H - 16);
+      const x = pad + i * gap + (gap - bw) / 2;
+      const r = elNS("rect");
+      r.setAttribute("x", x); r.setAttribute("y", H - h); r.setAttribute("width", bw); r.setAttribute("height", h);
+      r.setAttribute("rx", 2); r.setAttribute("class", "bar");
+      r.style.transitionDelay = (i * 55) + "ms";
+      svg.appendChild(r);
+    });
+    if (xrow) xrow.innerHTML = months.map((m) => `<span>${m}</span>`).join("");
+  })();
+
+  // Donut — freight mix
+  (function () {
+    const svg = $("#donutChart"), legend = $("#donutLegend");
+    if (!svg) return;
+    const segs = [ { label: "Barrels & bulk", val: 52 }, { label: "Case & pallet", val: 33 }, { label: "White-glove", val: 15 } ];
+    const r = 64, C = 2 * Math.PI * r, shades = ["seg-1", "seg-2", "seg-3"];
+    let acc = 0;
+    segs.forEach((s, i) => {
+      const frac = s.val / 100;
+      const c = elNS("circle");
+      c.setAttribute("cx", 90); c.setAttribute("cy", 90); c.setAttribute("r", r);
+      c.setAttribute("class", "donut-seg " + shades[i]);
+      c.setAttribute("stroke-dasharray", `${C} ${C}`);
+      c.setAttribute("stroke-dashoffset", C);
+      c.dataset.target = C * (1 - frac);
+      c.style.transform = `rotate(${acc * 360}deg)`;
+      c.style.transitionDelay = (i * 200) + "ms";
+      svg.appendChild(c);
+      acc += frac;
+    });
+    if (legend) legend.innerHTML = segs.map((s, i) => `<li><span class="sw ${shades[i]}"></span>${s.label} <em>${s.val}%</em></li>`).join("");
+  })();
+
+  // Lane bars — busiest lanes
+  (function () {
+    const ul = $("#laneBars");
+    if (!ul) return;
+    const lanes = [ { l: "Louisville → Chicago", v: 100 }, { l: "Louisville → Atlanta", v: 82 }, { l: "Louisville → Dallas", v: 74 }, { l: "Louisville → Nashville", v: 61 }, { l: "Louisville → New York", v: 48 } ];
+    ul.innerHTML = lanes.map((x, i) => `<li><div class="lane-row"><span>${x.l}</span></div><div class="lane-track"><span class="lane-fill" style="--w:${x.v}%;transition-delay:${i * 90}ms"></span></div></li>`).join("");
+  })();
+
+  // trigger chart animations when each card scrolls in
+  ["#barChart", "#donutChart", "#laneBars"].forEach((sel) => {
+    const node = $(sel), card = node && node.closest(".chart-card");
+    whenIn(card, () => {
+      card.classList.add("chart-in");
+      if (sel === "#donutChart") $$(".donut-seg", node).forEach((c) => c.setAttribute("stroke-dashoffset", c.dataset.target));
+    });
+  });
 
   /* ---------- Instant quote calculator ---------- */
   const miles = $("#q_miles"), weight = $("#q_weight"), equip = $("#q_equip"), rush = $("#q_rush");
@@ -153,19 +196,15 @@
   const estLow = $("#estLow"), estHigh = $("#estHigh"), estPerMile = $("#estPerMile"), estTransit = $("#estTransit");
 
   const calcQuote = () => {
-    const mi = +miles.value;
-    const wt = +weight.value;
-    const eqMult = +equip.value;
-    // base per-mile decreases with distance (economies of scale), floor at 1.85
+    const mi = +miles.value, wt = +weight.value, eqMult = +equip.value;
     let perMile = Math.max(1.85, 3.4 - mi / 900);
     perMile *= eqMult;
-    if (wt > 30000) perMile *= 1.08; // heavy freight surcharge
+    if (wt > 30000) perMile *= 1.08;
     if (rush.checked) perMile *= 1.12;
     const base = perMile * mi;
     const low = Math.round((base * 0.93) / 5) * 5;
     const high = Math.round((base * 1.09) / 5) * 5;
     const transit = Math.max(1, Math.ceil(mi / 550));
-
     milesOut.textContent = fmt(mi) + " mi";
     weightOut.textContent = fmt(wt) + " lbs";
     estLow.textContent = "$" + fmt(low);
@@ -176,7 +215,7 @@
   [miles, weight, equip, rush].forEach((el) => el && el.addEventListener("input", calcQuote));
   if (miles) calcQuote();
 
-  /* ---------- Form handlers (client-side only demo) ---------- */
+  /* ---------- Form handlers (client-side demo) ---------- */
   const handleForm = (formId, successId) => {
     const form = $("#" + formId);
     if (!form) return;
