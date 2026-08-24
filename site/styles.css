@@ -1,16 +1,18 @@
 :root {
-  --ink: #0d0d0d;
-  --ink-2: #1a1a1a;
-  --paper: #ffffff;
-  --cream: #f6f2ea;
-  --cream-2: #efe9dd;
-  --line: rgba(13, 13, 13, 0.12);
-  --line-2: rgba(13, 13, 13, 0.22);
-  --line-paper: rgba(255, 255, 255, 0.16);
-  --muted: #55524c;
-  --muted-2: #8a8580;
-  --whiskey: #a9702f;
-  --whiskey-2: #c98a45;
+  /* Bourbon palette — espresso darks, parchment lights, amber accents */
+  --ink: #1a1109;        /* deep espresso (dark sections, text, buttons) */
+  --ink-2: #2a1c10;
+  --paper: #fdf9f1;      /* warm off-white (body + cards) */
+  --cream: #f4ebd9;      /* parchment (alt sections) */
+  --cream-2: #e9dcc4;
+  --line: rgba(26, 17, 9, 0.13);
+  --line-2: rgba(26, 17, 9, 0.22);
+  --line-paper: rgba(245, 230, 205, 0.18);
+  --muted: #6a5844;
+  --muted-2: #9c8a72;
+  --whiskey: #a8631f;    /* bourbon amber */
+  --whiskey-2: #cf9440;  /* lighter caramel/gold */
+  --whiskey-deep: #7c3f12;
   --radius: 6px;
   --maxw: 1180px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -71,7 +73,8 @@ img, svg, canvas { display: block; max-width: 100%; }
 .nav-cta { margin-left: 4px; }
 
 /* ---------- Hero ---------- */
-.hero { position: relative; min-height: 100svh; display: flex; align-items: center; overflow: hidden; background: var(--ink); color: var(--paper); }
+.hero { position: relative; min-height: 100svh; display: flex; align-items: center; overflow: hidden; color: var(--paper);
+  background: radial-gradient(90% 80% at 78% 30%, rgba(168, 99, 31, 0.22), transparent 60%), var(--ink); }
 #globe { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 .hero-veil {
   position: absolute; inset: 0; z-index: 1;
@@ -197,15 +200,21 @@ img, svg, canvas { display: block; max-width: 100%; }
 .chart-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .chart-value { font-family: "Fraunces", serif; font-size: 22px; font-weight: 600; color: var(--ink); }
 .chart-svg { width: 100%; height: auto; overflow: visible; }
-.bar { fill: var(--whiskey); transform: scaleY(0); transform-box: fill-box; transform-origin: bottom; transition: transform 0.85s var(--ease); }
+/* Charts: resting state is the final/visible state (never blank). When the card
+   reveals (.in from the site-wide observer), a keyframe replays hidden -> final. */
+@keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes laneGrow { from { width: 0; } to { width: var(--w); } }
+@keyframes donutDraw { from { stroke-dashoffset: var(--c); } to { stroke-dashoffset: var(--target); } }
+.bar { fill: var(--whiskey); transform-box: fill-box; transform-origin: bottom; }
 .bar:nth-child(even) { fill: var(--whiskey-2); }
-.chart-in .bar { transform: scaleY(1); }
+.chart-card.in .bar { animation: barGrow 0.5s var(--ease) both; }
 .chart-x { display: flex; justify-content: space-between; margin-top: 8px; padding: 0 2px; }
 .chart-x span { font-size: 10px; color: var(--muted-2); flex: 1; text-align: center; }
 /* donut */
 .donut-wrap { display: flex; align-items: center; gap: 20px; }
 #donutChart { width: 150px; height: 150px; flex-shrink: 0; }
-.donut-seg { fill: none; stroke-width: 22; transform-box: view-box; transform-origin: 90px 90px; transition: stroke-dashoffset 1s var(--ease); }
+.donut-seg { fill: none; stroke-width: 22; transform-box: view-box; transform-origin: 90px 90px; }
+.chart-card.in .donut-seg { animation: donutDraw 0.7s var(--ease) both; }
 .donut-seg.seg-1 { stroke: var(--ink); }
 .donut-seg.seg-2 { stroke: var(--whiskey); }
 .donut-seg.seg-3 { stroke: var(--whiskey-2); }
@@ -216,12 +225,12 @@ img, svg, canvas { display: block; max-width: 100%; }
 .sw.seg-1 { background: var(--ink); }
 .sw.seg-2 { background: var(--whiskey); }
 .sw.seg-3 { background: var(--whiskey-2); }
-/* lane bars */
+/* lane bars: visible by default; hidden only once armed */
 .lanebars { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
 .lane-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--ink); margin-bottom: 7px; }
 .lane-track { height: 8px; background: var(--cream-2); border-radius: 999px; overflow: hidden; }
-.lane-fill { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--whiskey), var(--whiskey-2)); transition: width 1s var(--ease); }
-.chart-in .lane-fill { width: var(--w); }
+.lane-fill { display: block; height: 100%; width: var(--w); border-radius: 999px; background: linear-gradient(90deg, var(--whiskey), var(--whiskey-2)); }
+.chart-card.in .lane-fill { animation: laneGrow 0.7s var(--ease) both; }
 
 /* ---------- Quote ---------- */
 .quote { max-width: none; background: var(--cream); }
@@ -286,6 +295,22 @@ output { font-size: 13px; color: var(--whiskey); font-weight: 600; font-family: 
 .footer-links a:hover { color: var(--paper); }
 .footer-bottom { display: flex; justify-content: space-between; padding-top: 24px; padding-bottom: 40px; font-size: 13px; color: rgba(255,255,255,0.5); flex-wrap: wrap; gap: 10px; }
 
+/* ---------- Sticky mobile CTA ---------- */
+.mobile-cta { display: none; }
+.btn-outline-ink { background: transparent; border-color: var(--line-2); color: var(--ink); }
+@media (max-width: 680px) {
+  .mobile-cta {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    display: flex; gap: 10px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    background: rgba(253, 249, 241, 0.94); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line-2);
+  }
+  .mobile-cta .btn { flex: 1; }
+  .mobile-cta .btn-outline-ink { flex: 0 0 34%; }
+  body { padding-bottom: 76px; }
+  .nav-cta { display: none; } /* the sticky bar carries the CTA on mobile */
+}
+
 /* ---------- Reveal ---------- */
 .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
 .reveal.in { opacity: 1; transform: none; }
@@ -315,6 +340,7 @@ output { font-size: 13px; color: var(--whiskey); font-weight: 600; font-family: 
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
-  .lane-active { animation: none; }
+  .lane-active, .route-active { animation: none; }
+  .chart-card.in .bar, .chart-card.in .donut-seg, .chart-card.in .lane-fill { animation: none; }
   * { scroll-behavior: auto; }
 }

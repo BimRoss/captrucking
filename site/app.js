@@ -123,12 +123,6 @@
   }
 
   /* ---------- Animated charts ---------- */
-  const whenIn = (node, fn) => {
-    if (!node) return;
-    const o = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { fn(); o.unobserve(node); } }), { threshold: 0.28 });
-    o.observe(node);
-  };
-
   // Bar chart — barrels moved / month
   (function () {
     const svg = $("#barChart"), xrow = $("#barChartX");
@@ -144,7 +138,7 @@
       const r = elNS("rect");
       r.setAttribute("x", x); r.setAttribute("y", H - h); r.setAttribute("width", bw); r.setAttribute("height", h);
       r.setAttribute("rx", 2); r.setAttribute("class", "bar");
-      r.style.transitionDelay = (i * 55) + "ms";
+      r.style.animationDelay = (i * 28) + "ms";
       svg.appendChild(r);
     });
     if (xrow) xrow.innerHTML = months.map((m) => `<span>${m}</span>`).join("");
@@ -163,10 +157,12 @@
       c.setAttribute("cx", 90); c.setAttribute("cy", 90); c.setAttribute("r", r);
       c.setAttribute("class", "donut-seg " + shades[i]);
       c.setAttribute("stroke-dasharray", `${C} ${C}`);
-      c.setAttribute("stroke-dashoffset", C);
-      c.dataset.target = C * (1 - frac);
+      const target = C * (1 - frac);
+      c.setAttribute("stroke-dashoffset", target); // resting state = visible/final
+      c.style.setProperty("--c", C);
+      c.style.setProperty("--target", target);
       c.style.transform = `rotate(${acc * 360}deg)`;
-      c.style.transitionDelay = (i * 200) + "ms";
+      c.style.animationDelay = (i * 120) + "ms";
       svg.appendChild(c);
       acc += frac;
     });
@@ -178,17 +174,12 @@
     const ul = $("#laneBars");
     if (!ul) return;
     const lanes = [ { l: "Louisville → Chicago", v: 100 }, { l: "Louisville → Atlanta", v: 82 }, { l: "Louisville → Dallas", v: 74 }, { l: "Louisville → Nashville", v: 61 }, { l: "Louisville → New York", v: 48 } ];
-    ul.innerHTML = lanes.map((x, i) => `<li><div class="lane-row"><span>${x.l}</span></div><div class="lane-track"><span class="lane-fill" style="--w:${x.v}%;transition-delay:${i * 90}ms"></span></div></li>`).join("");
+    ul.innerHTML = lanes.map((x, i) => `<li><div class="lane-row"><span>${x.l}</span></div><div class="lane-track"><span class="lane-fill" style="--w:${x.v}%;animation-delay:${i * 55}ms"></span></div></li>`).join("");
   })();
 
-  // trigger chart animations when each card scrolls in
-  ["#barChart", "#donutChart", "#laneBars"].forEach((sel) => {
-    const node = $(sel), card = node && node.closest(".chart-card");
-    whenIn(card, () => {
-      card.classList.add("chart-in");
-      if (sel === "#donutChart") $$(".donut-seg", node).forEach((c) => c.setAttribute("stroke-dashoffset", c.dataset.target));
-    });
-  });
+  // Charts animate in via pure CSS keyframes, gated on the site-wide reveal
+  // observer's `.in` class (added to each .chart-card). Their resting state is
+  // the final/visible state, so a missed observer can never leave one blank.
 
   /* ---------- Instant quote calculator ---------- */
   const miles = $("#q_miles"), weight = $("#q_weight"), equip = $("#q_equip"), rush = $("#q_rush");

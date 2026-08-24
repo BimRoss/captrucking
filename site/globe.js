@@ -35,7 +35,7 @@ function initGlobe(canvas) {
   // --- Solid inner sphere for depth ---
   const inner = new THREE.Mesh(
     new THREE.SphereGeometry(R * 0.985, 48, 48),
-    new THREE.MeshBasicMaterial({ color: 0x0d0d0d })
+    new THREE.MeshBasicMaterial({ color: 0x1a1109 })
   );
   group.add(inner);
 
@@ -82,7 +82,7 @@ function initGlobe(canvas) {
   const hubGeo = new THREE.BufferGeometry().setFromPoints(hubs.map((h) => toVec(h[0], h[1])));
   const hubPts = new THREE.Points(
     hubGeo,
-    new THREE.PointsMaterial({ color: 0xc98a45, size: 0.11, sizeAttenuation: true })
+    new THREE.PointsMaterial({ color: 0xcf9440, size: 0.11, sizeAttenuation: true })
   );
   group.add(hubPts);
 
@@ -97,14 +97,14 @@ function initGlobe(canvas) {
     const curve = new THREE.QuadraticBezierCurve3(home, mid, dest);
     const pts = curve.getPoints(60);
     const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16 });
+    const mat = new THREE.LineBasicMaterial({ color: 0xcf9440, transparent: true, opacity: 0.14 });
     group.add(new THREE.Line(geo, mat));
 
     // moving pulse along the arc
     const pulseGeo = new THREE.BufferGeometry().setFromPoints([pts[0]]);
     const pulse = new THREE.Points(
       pulseGeo,
-      new THREE.PointsMaterial({ color: 0xc98a45, size: 0.1, sizeAttenuation: true, transparent: true })
+      new THREE.PointsMaterial({ color: 0xe0a84e, size: 0.1, sizeAttenuation: true, transparent: true })
     );
     group.add(pulse);
     arcs.push({ curve, pulse, offset: Math.random(), speed: 0.12 + Math.random() * 0.1 });
