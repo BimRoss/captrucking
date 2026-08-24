@@ -63,7 +63,6 @@
     versailles:   { name: "Versailles",   distillery: "Woodford Reserve",               loads: 588,  miles: 70,  ontime: 99.2 },
     lexington:    { name: "Lexington",    distillery: "Town Branch · Barrel House",     loads: 640,  miles: 85,  ontime: 99.1 },
     danville:     { name: "Danville",     distillery: "Wilderness Trail",               loads: 402,  miles: 92,  ontime: 98.9 },
-    owensboro:    { name: "Owensboro",    distillery: "Green River",                    loads: 356,  miles: 108, ontime: 98.8 },
   };
   const kysvg = $("#kymap");
   const geo = window.KY_GEO;
@@ -95,6 +94,19 @@
       readout.miles.textContent = fmt(d.miles);
       readout.ontime.textContent = d.ontime.toFixed(1) + "%";
     };
+    // Per-town label placement [dx, dy, text-anchor] to de-collide the dense
+    // central cluster at this zoom. Default is centered above the dot.
+    const LABEL_POS = {
+      louisville:   [0, -8, "middle"],
+      clermont:     [0, -7, "middle"],
+      bardstown:    [7, 3.5, "start"],
+      frankfort:    [0, -7, "middle"],
+      lawrenceburg: [0, 13, "middle"],
+      versailles:   [-3, -7, "middle"],
+      lexington:    [7, 3, "start"],
+      loretto:      [0, 13, "middle"],
+      danville:     [7, 3, "start"],
+    };
     const makeStop = (id) => {
       const d = TOWNS[id], pos = geo.towns[id];
       if (!pos) return null;
@@ -102,14 +114,15 @@
       g.setAttribute("class", "hub" + (d.home ? " hub-home active" : ""));
       g.setAttribute("tabindex", "0"); g.setAttribute("role", "button");
       g.setAttribute("aria-label", d.name + ", " + d.distillery);
-      if (d.home) { const ring = elNS("circle"); ring.setAttribute("cx", pos[0]); ring.setAttribute("cy", pos[1]); ring.setAttribute("r", 12); ring.setAttribute("class", "hub-ring"); g.appendChild(ring); }
-      const dot = elNS("circle"); dot.setAttribute("cx", pos[0]); dot.setAttribute("cy", pos[1]); dot.setAttribute("r", d.home ? 6 : 4.5); dot.setAttribute("class", "hub-dot"); g.appendChild(dot);
-      const label = elNS("text"); label.setAttribute("x", pos[0]); label.setAttribute("y", pos[1] - 11); label.setAttribute("text-anchor", "middle"); label.setAttribute("class", "hub-label"); label.textContent = d.name; g.appendChild(label);
+      if (d.home) { const ring = elNS("circle"); ring.setAttribute("cx", pos[0]); ring.setAttribute("cy", pos[1]); ring.setAttribute("r", 8); ring.setAttribute("class", "hub-ring"); g.appendChild(ring); }
+      const dot = elNS("circle"); dot.setAttribute("cx", pos[0]); dot.setAttribute("cy", pos[1]); dot.setAttribute("r", d.home ? 4.5 : 3); dot.setAttribute("class", "hub-dot"); g.appendChild(dot);
+      const lp = LABEL_POS[id] || [0, -7, "middle"];
+      const label = elNS("text"); label.setAttribute("x", pos[0] + lp[0]); label.setAttribute("y", pos[1] + lp[1]); label.setAttribute("text-anchor", lp[2]); label.setAttribute("class", "hub-label"); label.textContent = d.name; g.appendChild(label);
       const activate = () => {
         $$(".hub", kysvg).forEach((n) => n.classList.remove("active"));
         g.classList.add("active");
         Object.values(routeEls).forEach((p) => p.setAttribute("class", "route"));
-        if (!d.home && routeEls[id]) routeEls[id].setAttribute("class", "route route-active");
+        if (!d.home && routeEls[id]) { routeEls[id].setAttribute("class", "route route-active"); routeEls[id].style.strokeDashoffset = "0"; }
         setReadout(d);
       };
       g.addEventListener("mouseenter", activate);
@@ -120,6 +133,39 @@
     };
     Object.keys(TOWNS).forEach((id) => { if (id !== "louisville") { const g = makeStop(id); if (g) kysvg.appendChild(g); } });
     const homeG = makeStop("louisville"); if (homeG) kysvg.appendChild(homeG);
+
+    /* Scroll-driven route draw: each lane grows from Louisville out to its
+       distillery as the section scrolls into view, staggered by order. */
+    const drawList = [];
+    Object.keys(routeEls).forEach((id) => {
+      const p = routeEls[id];
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      drawList.push({ p, len });
+    });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      drawList.forEach((r) => { r.p.style.strokeDashoffset = "0"; });
+    } else if (drawList.length) {
+      const netSection = $("#network");
+      const drawRoutes = () => {
+        const rect = netSection.getBoundingClientRect();
+        const vh = window.innerHeight || 800;
+        const startY = vh * 0.85, endY = vh * 0.12;
+        let prog = (startY - rect.top) / (startY - endY);
+        prog = Math.max(0, Math.min(1, prog));
+        const n = drawList.length;
+        drawList.forEach((r, i) => {
+          const s = i * (0.5 / n);
+          const local = Math.max(0, Math.min(1, (prog - s) / 0.4));
+          r.p.style.strokeDashoffset = r.len * (1 - local);
+        });
+      };
+      window.addEventListener("scroll", drawRoutes, { passive: true });
+      window.addEventListener("resize", drawRoutes);
+      drawRoutes();
+    }
   }
 
   /* ---------- Animated charts ---------- */

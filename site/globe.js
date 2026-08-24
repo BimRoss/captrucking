@@ -1,120 +1,129 @@
-// 3D freight-network globe for the hero. Degrades gracefully if WebGL/Three fails.
+// 3D Kentucky landmass for the hero: the Commonwealth extruded into a slab,
+// with glowing distillery nodes and bourbon-trail arcs pulsing out of
+// Louisville. Mirrors the map below. Degrades to a clean background if
+// WebGL / Three / the geometry aren't available.
 import * as THREE from "https://esm.sh/three@0.160.0";
 
 const canvas = document.getElementById("globe");
 if (canvas && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   try {
-    initGlobe(canvas);
+    initKentucky(canvas);
   } catch (e) {
-    // Leave the hero background clean if 3D can't run.
     canvas.style.display = "none";
   }
 }
 
-function initGlobe(canvas) {
+// "M x,y L x,y ... Z" -> [[x,y], ...]
+function parseOutline(d) {
+  const nums = (d.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  const pts = [];
+  for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+  return pts;
+}
+
+function initKentucky(canvas) {
+  const geo = window.KY_GEO;
+  if (!geo || !geo.paths || !geo.paths[0]) throw new Error("no KY geometry");
+  const raw = parseOutline(geo.paths[0]);
+  if (raw.length < 3) throw new Error("bad outline");
+
+  // svg-space bbox -> centered world space (flip Y: svg is y-down)
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  raw.forEach(([x, y]) => { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); });
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const scale = 5.4 / (maxX - minX);
+  const tx = (x) => (x - cx) * scale;
+  const ty = (y) => -(y - cy) * scale;
+
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-  camera.position.set(0, 0, 6.2);
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(0, 0, 6.6);
 
   const group = new THREE.Group();
-  group.rotation.z = 0.35;
+  group.rotation.x = -0.5;   // tilt to reveal the extrusion depth
   scene.add(group);
 
-  const R = 2;
+  // --- lighting ---
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const key = new THREE.DirectionalLight(0xfff1dc, 1.15); key.position.set(3, 5, 6); scene.add(key);
+  const amberLight = new THREE.PointLight(0xcf9440, 1.5, 40); amberLight.position.set(-3, 2, 4); scene.add(amberLight);
 
-  // --- Wireframe sphere ---
-  const wire = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(R, 4),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.13 })
+  // --- extruded Kentucky slab ---
+  const shape = new THREE.Shape();
+  raw.forEach(([x, y], i) => { const X = tx(x), Y = ty(y); i ? shape.lineTo(X, Y) : shape.moveTo(X, Y); });
+  shape.closePath();
+  const depth = 0.42;
+  const slabGeo = new THREE.ExtrudeGeometry(shape, {
+    depth, bevelEnabled: true, bevelThickness: 0.045, bevelSize: 0.04, bevelSegments: 2, steps: 1,
+  });
+  slabGeo.translate(0, 0, -depth / 2); // center the depth on z=0; front face ~ +0.25
+  const slab = new THREE.Mesh(slabGeo, new THREE.MeshStandardMaterial({ color: 0x241812, metalness: 0.35, roughness: 0.55 }));
+  group.add(slab);
+
+  const FZ = 0.30; // decoration plane sitting just above the front bevel
+
+  // --- amber border trace on the front face ---
+  const outlinePts = raw.map(([x, y]) => new THREE.Vector3(tx(x), ty(y), FZ - 0.02));
+  outlinePts.push(outlinePts[0].clone());
+  group.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(outlinePts),
+    new THREE.LineBasicMaterial({ color: 0xcf9440, transparent: true, opacity: 0.65 })
+  ));
+
+  // --- distillery nodes + Louisville hub (within-100mi set, mirrors the map) ---
+  const ACTIVE = ["clermont", "bardstown", "frankfort", "lawrenceburg", "loretto", "versailles", "lexington", "danville"];
+  const homeXY = geo.towns.louisville;
+  const home = new THREE.Vector3(tx(homeXY[0]), ty(homeXY[1]), FZ);
+
+  const nodeMat = new THREE.MeshBasicMaterial({ color: 0xe0a84e });
+  ACTIVE.forEach((id) => {
+    const p = geo.towns[id];
+    if (!p) return;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.05, 14, 14), nodeMat);
+    m.position.set(tx(p[0]), ty(p[1]), FZ);
+    group.add(m);
+  });
+  const hub = new THREE.Mesh(new THREE.SphereGeometry(0.085, 18, 18), new THREE.MeshBasicMaterial({ color: 0xf3c874 }));
+  hub.position.copy(home);
+  group.add(hub);
+  // soft halo ring around the hub
+  const halo = new THREE.Mesh(
+    new THREE.RingGeometry(0.11, 0.14, 32),
+    new THREE.MeshBasicMaterial({ color: 0xcf9440, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
   );
-  group.add(wire);
+  halo.position.copy(home);
+  group.add(halo);
 
-  // --- Solid inner sphere for depth ---
-  const inner = new THREE.Mesh(
-    new THREE.SphereGeometry(R * 0.985, 48, 48),
-    new THREE.MeshBasicMaterial({ color: 0x1a1109 })
-  );
-  group.add(inner);
-
-  // --- Glowing dot grid on the surface (fibonacci sphere) ---
-  const N = 900;
-  const dotPos = new Float32Array(N * 3);
-  for (let i = 0; i < N; i++) {
-    const phi = Math.acos(1 - (2 * (i + 0.5)) / N);
-    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-    dotPos[i * 3] = R * Math.sin(phi) * Math.cos(theta);
-    dotPos[i * 3 + 1] = R * Math.cos(phi);
-    dotPos[i * 3 + 2] = R * Math.sin(phi) * Math.sin(theta);
-  }
-  const dotGeo = new THREE.BufferGeometry();
-  dotGeo.setAttribute("position", new THREE.BufferAttribute(dotPos, 3));
-  const dots = new THREE.Points(
-    dotGeo,
-    new THREE.PointsMaterial({ color: 0x777777, size: 0.026, sizeAttenuation: true })
-  );
-  group.add(dots);
-
-  // --- Hubs (US-ish coordinates) as bright points ---
-  const hubs = [
-    [38.25, -85.76], // Louisville
-    [32.78, -96.80], // Dallas
-    [41.88, -87.63], // Chicago
-    [33.75, -84.39], // Atlanta
-    [40.71, -74.01], // NYC
-    [34.05, -118.24], // LA
-    [39.74, -104.99], // Denver
-    [29.76, -95.37], // Houston
-    [25.76, -80.19], // Miami
-    [47.61, -122.33], // Seattle
-  ];
-  const toVec = (lat, lon, r = R * 1.008) => {
-    const p = (90 - lat) * (Math.PI / 180);
-    const t = (lon + 180) * (Math.PI / 180);
-    return new THREE.Vector3(
-      -r * Math.sin(p) * Math.cos(t),
-      r * Math.cos(p),
-      r * Math.sin(p) * Math.sin(t)
-    );
-  };
-  const hubGeo = new THREE.BufferGeometry().setFromPoints(hubs.map((h) => toVec(h[0], h[1])));
-  const hubPts = new THREE.Points(
-    hubGeo,
-    new THREE.PointsMaterial({ color: 0xcf9440, size: 0.11, sizeAttenuation: true })
-  );
-  group.add(hubPts);
-
-  // --- Arcs from Louisville (hub 0) to the others ---
-  const home = toVec(hubs[0][0], hubs[0][1]);
+  // --- bourbon-trail arcs lifting toward the viewer ---
   const arcs = [];
-  for (let i = 1; i < hubs.length; i++) {
-    const dest = toVec(hubs[i][0], hubs[i][1]);
+  ACTIVE.forEach((id, i) => {
+    const p = geo.towns[id];
+    if (!p) return;
+    const dest = new THREE.Vector3(tx(p[0]), ty(p[1]), FZ);
     const mid = home.clone().add(dest).multiplyScalar(0.5);
-    const lift = 1 + 0.35 * (home.distanceTo(dest) / (R * 2));
-    mid.normalize().multiplyScalar(R * lift);
+    mid.z += 0.4 + home.distanceTo(dest) * 0.28; // arc rises off the slab
     const curve = new THREE.QuadraticBezierCurve3(home, mid, dest);
-    const pts = curve.getPoints(60);
-    const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    const mat = new THREE.LineBasicMaterial({ color: 0xcf9440, transparent: true, opacity: 0.14 });
-    group.add(new THREE.Line(geo, mat));
-
-    // moving pulse along the arc
-    const pulseGeo = new THREE.BufferGeometry().setFromPoints([pts[0]]);
+    const pts = curve.getPoints(50);
+    group.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({ color: 0xcf9440, transparent: true, opacity: 0.3 })
+    ));
     const pulse = new THREE.Points(
-      pulseGeo,
-      new THREE.PointsMaterial({ color: 0xe0a84e, size: 0.1, sizeAttenuation: true, transparent: true })
+      new THREE.BufferGeometry().setFromPoints([pts[0]]),
+      new THREE.PointsMaterial({ color: 0xf3c874, size: 0.13, sizeAttenuation: true, transparent: true })
     );
     group.add(pulse);
-    arcs.push({ curve, pulse, offset: Math.random(), speed: 0.12 + Math.random() * 0.1 });
-  }
+    arcs.push({ curve, pulse, offset: (i / ACTIVE.length), speed: 0.16 + (i % 3) * 0.04 });
+  });
 
-  // --- Interaction: subtle parallax on pointer ---
+  // --- pointer parallax ---
   let targetX = 0, targetY = 0;
   window.addEventListener("pointermove", (e) => {
-    targetX = (e.clientX / window.innerWidth - 0.5) * 0.4;
-    targetY = (e.clientY / window.innerHeight - 0.5) * 0.3;
+    targetX = (e.clientX / window.innerWidth - 0.5) * 0.5;
+    targetY = (e.clientY / window.innerHeight - 0.5) * 0.35;
   }, { passive: true });
 
   function resize() {
@@ -130,19 +139,17 @@ function initGlobe(canvas) {
   const clock = new THREE.Clock();
   function tick() {
     const t = clock.getElapsedTime();
-    group.rotation.y += 0.0016;
-    group.rotation.x += (targetY - group.rotation.x * 0.0 - group.rotation.x) * 0 + 0; // keep stable
-    // parallax the whole group gently
-    group.position.x += (targetX - group.position.x) * 0.04;
-    group.position.y += (-targetY - group.position.y) * 0.04;
-
+    // gentle rock so Kentucky always reads right-side-up, plus pointer parallax
+    group.rotation.y = Math.sin(t * 0.16) * 0.42 + targetX;
+    group.rotation.x = -0.5 - targetY * 0.55;
+    halo.material.opacity = 0.35 + 0.2 * Math.sin(t * 1.6);
+    halo.quaternion.copy(camera.quaternion);
     for (const a of arcs) {
       const u = (t * a.speed + a.offset) % 1;
       const p = a.curve.getPoint(u);
       a.pulse.geometry.setFromPoints([p]);
       a.pulse.material.opacity = Math.sin(u * Math.PI);
     }
-
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }

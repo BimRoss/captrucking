@@ -187,10 +187,10 @@ img, svg, canvas { display: block; max-width: 100%; }
 @keyframes dash { to { stroke-dashoffset: -18; } }
 .hub { cursor: pointer; }
 .hub-dot { fill: rgba(255,255,255,0.55); transition: fill 0.2s, r 0.2s; }
-.hub:hover .hub-dot, .hub:focus .hub-dot, .hub.active .hub-dot { fill: var(--whiskey-2); r: 6; }
+.hub:hover .hub-dot, .hub:focus .hub-dot, .hub.active .hub-dot { fill: var(--whiskey-2); r: 4.5; }
 .hub-home .hub-dot { fill: var(--whiskey-2); }
 .hub-ring { fill: none; stroke: var(--whiskey-2); opacity: 0.4; }
-.hub-label { fill: rgba(255,255,255,0.45); font-size: 12px; font-family: "Inter"; font-weight: 500; pointer-events: none; letter-spacing: 0.02em; transition: fill 0.2s; }
+.hub-label { fill: rgba(255,255,255,0.5); font-size: 7px; font-family: "Inter"; font-weight: 500; pointer-events: none; letter-spacing: 0.02em; transition: fill 0.2s; }
 .hub.active .hub-label, .hub:hover .hub-label, .hub-home .hub-label { fill: var(--paper); }
 
 /* ---------- Numbers / charts ---------- */
